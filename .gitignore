@@ -1,0 +1,74 @@
+# 빌드 및 실행 산출물
+.gradle/
+build/
+run/
+out/
+bin/
+tmp/
+repo/
+*.class
+*.log
+
+# 개발 도구 설정
+.idea/
+.eclipse/
+.vscode/
+.github/
+.settings/
+.run/
+.apt_generated/
+.factorypath
+.classpath
+.project
+*.iws
+*.iml
+*.ipr
+.DS_Store
+
+# 게임 리소스와 생성 데이터
+src/main/resources/
+src/generated/
+assets/
+asset_backup/
+asset_source/
+model_update/
+legacy_reference/
+docs/
+scripts/
+logs/
+
+# 외부 모드와 참고 자료
+mods/
+libs/
+reference-mods/
+cobblemon-resources/
+Cobblemon-*/
+cobblemon-*/
+참고 모드/
+
+# 이미지와 편집 원본
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.webp
+*.bmp
+*.tga
+*.psd
+*.aseprite
+
+# 바이너리와 압축 파일
+*.jar
+*.zip
+*.7z
+*.rar
+
+# 운영 데이터와 비밀 설정
+*.nbt
+*.sqlite
+*.sqlite3
+*.db
+.env
+.env.*
+secrets.*
+credentials.*

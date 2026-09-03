@@ -1,0 +1,73 @@
+modLoader="javafml"
+loaderVersion="${loader_version_range}"
+license="${mod_license}"
+
+[[mods]]
+modId="${mod_id}"
+version="${mod_version}"
+displayName="${mod_name}"
+authors="Cuding, 요이코 서버 팀"
+description='''
+요이코 코블몬 서버의 성장, 경제, 꾸미기, 유물, 이벤트, 우편 및 거북이 경주 기능을 제공합니다.
+'''
+
+[[dependencies.${mod_id}]]
+    modId="neoforge"
+    type="required"
+    versionRange="[${neo_version},)"
+    ordering="NONE"
+    side="BOTH"
+
+[[dependencies.${mod_id}]]
+    modId="minecraft"
+    type="required"
+    versionRange="${minecraft_version_range}"
+    ordering="NONE"
+    side="BOTH"
+
+[[dependencies.${mod_id}]]
+    modId="cobblemon"
+    type="required"
+    versionRange="[1.7.3,)"
+    ordering="AFTER"
+    side="BOTH"
+
+[[dependencies.${mod_id}]]
+    modId="critical_strike"
+    type="optional"
+    reason="치명타 확률과 치명타 피해 유물 효과를 활성화합니다."
+    versionRange="[1.0.0,)"
+    ordering="AFTER"
+    side="BOTH"
+
+[[dependencies.${mod_id}]]
+    modId="waystones"
+    type="optional"
+    reason="귀환 부적 유물 효과를 활성화합니다."
+    versionRange="[21.1,)"
+    ordering="AFTER"
+    side="BOTH"
+
+[[dependencies.${mod_id}]]
+    modId="mega_showdown"
+    type="optional"
+    reason="수정 나침반 유물 효과를 활성화합니다."
+    versionRange="[1.9,)"
+    ordering="AFTER"
+    side="BOTH"
+
+[[dependencies.${mod_id}]]
+    modId="quality_food"
+    type="optional"
+    reason="음식 품질 향상 유물 효과를 활성화합니다."
+    versionRange="[1.0,)"
+    ordering="AFTER"
+    side="BOTH"
+
+[[dependencies.${mod_id}]]
+    modId="xaeroworldmap"
+    type="optional"
+    reason="Xaero 월드맵에 속보 탐색 구역을 표시합니다."
+    versionRange="[1.44.2,)"
+    ordering="AFTER"
+    side="CLIENT"

@@ -1,0 +1,405 @@
+plugins {
+    id 'java-library'
+    id 'maven-publish'
+    id 'net.neoforged.moddev' version '2.0.141'
+    id 'idea'
+}
+
+tasks.named('wrapper', Wrapper).configure {
+    // 래퍼를 갱신할 때마다 지정하지 않도록 관련 값을 여기에서 정의합니다.
+    // Wrapper.DistributionType.ALL로 바꾸면 Gradle 전체 소스와 커서 도움말용 문서를 내려받습니다.
+    // 대신 파일 크기가 증가하며, ALL로 바꾼 뒤에는 Gradle wrapper 작업을 두 번 실행해야 합니다.
+    // gradle/wrapper/gradle-wrapper.properties의 distributionUrl이 `-all`을 가리키는지 확인하십시오.
+    distributionType = Wrapper.DistributionType.BIN
+}
+
+version = mod_version
+group = mod_group_id
+
+sourceSets.main.resources {
+    // 데이터 생성기가 만든 리소스를 포함합니다.
+    srcDir('src/generated/resources')
+
+    // 개발 환경에서만 쓰는 공통 리소스를 최종 산출물에서 제외합니다.
+    exclude("**/*.bbmodel") // BlockBench project files
+    exclude("src/generated/**/.cache") // datagen cache files
+}
+
+repositories {
+    // 아래 의존성에 추가 저장소가 필요하면 여기에 등록합니다.
+    mavenCentral()
+    maven {
+        name = 'Kotlin for Forge'
+        url = 'https://thedarkcolour.github.io/KotlinForForge/'
+    }
+    maven {
+        name = 'Xaero Official'
+        url = 'https://chocolateminecraft.com/maven/'
+    }
+    exclusiveContent {
+        forRepository {
+            maven {
+                name = 'Modrinth'
+                url = 'https://api.modrinth.com/maven'
+            }
+        }
+        filter { includeGroup 'maven.modrinth' }
+    }
+}
+
+base {
+    archivesName = mod_id
+}
+
+// 마인크래프트 1.21.1은 Java 21을 제공하므로 모드도 Java 21을 대상으로 합니다.
+java.toolchain.languageVersion = JavaLanguageVersion.of(21)
+
+neoForge {
+    // 사용할 NeoForge 버전을 지정합니다.
+    version = project.neo_version
+
+    parchment {
+        mappingsVersion = project.parchment_mappings_version
+        minecraftVersion = project.parchment_minecraft_version
+    }
+
+    // 선택 설정입니다. 접근 변환기는 자동으로 감지됩니다.
+    // accessTransformers = project.files('src/main/resources/META-INF/accesstransformer.cfg')
+
+    // 기본 실행 구성입니다.
+    // 필요에 따라 수정하거나 제거하거나 복제할 수 있습니다.
+    runs {
+        client {
+            client()
+
+            // 게임 테스트를 불러올 네임스페이스를 쉼표로 구분합니다. 비어 있으면 전체를 사용합니다.
+            systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
+        }
+
+        server {
+            server()
+            programArgument '--nogui'
+            systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
+        }
+
+        // 이 실행 구성은 GameTestServer에서 등록된 테스트를 모두 실행한 뒤 종료합니다.
+        // 기본적으로 게임 테스트가 없으면 서버가 비정상 종료됩니다.
+        // 다른 실행 구성에서도 `/test` 명령을 통해 게임 테스트 체계를 사용할 수 있습니다.
+        gameTestServer {
+            type = "gameTestServer"
+            systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
+        }
+
+        data {
+            data()
+
+            // 위 configureEach에서 지정한 작업 폴더를 덮어쓰려면 아래 설정의 주석을 해제합니다.
+            // gameDirectory = project.file('run-data')
+
+            // 데이터 생성 대상 모드 식별자, 출력 위치, 기존 리소스 탐색 위치를 지정합니다.
+            programArguments.addAll '--mod', project.mod_id, '--all', '--output', file('src/generated/resources/').getAbsolutePath(), '--existing', file('src/main/resources/').getAbsolutePath()
+        }
+
+        // 위의 모든 실행 구성에 적용합니다.
+        configureEach {
+            // 사용자 개발 환경에 권장되는 로그 설정입니다.
+            // 표식은 쉼표로 구분하여 필요에 따라 추가하거나 제거할 수 있습니다.
+            // "SCAN": 모드 검색 과정
+            // "REGISTRIES": 레지스트리 이벤트 발생 과정
+            // "REGISTRYDUMP": 전체 레지스트리 내용 출력
+            systemProperty 'forge.logging.markers', 'REGISTRIES'
+
+            // 콘솔에 권장되는 로그 수준입니다.
+            // 필요에 따라 다른 수준을 지정할 수 있습니다.
+            // 참고: https://stackoverflow.com/questions/2031163/when-to-use-the-different-log-levels
+            logLevel = org.slf4j.event.Level.DEBUG
+        }
+    }
+
+    mods {
+        // 모드와 소스의 연결을 정의합니다.
+        // 게임이 각 소스의 소속 모드를 판단할 때 사용합니다.
+        // 여러 모드를 포함하는 프로젝트는 모드마다 하나씩 정의해야 합니다.
+        "${mod_id}" {
+            sourceSet(sourceSets.main)
+        }
+    }
+}
+
+// `localRuntime`이라는 의존성 구성을 만듭니다.
+// 실행 테스트에는 필요하지만 이 모드의 소비자에게 전파하지 않을 선택 의존성은
+// `runtimeOnly` 대신 이 구성을 사용하여 선언합니다.
+configurations {
+    runtimeClasspath.extendsFrom localRuntime
+}
+
+dependencies {
+    def cobblemonReference = file("../참고 모드/Cobblemon-neoforge-1.7.3+1.21.1")
+    if (cobblemonReference.exists()) {
+        compileOnly files(cobblemonReference)
+        localRuntime files(cobblemonReference)
+    } else {
+        // 개발 환경에서 사용한 정확한 NeoForge 1.7.3 산출물을 위한 CI 및 배포 대체 경로입니다.
+        compileOnly "maven.modrinth:MdwFAVRL:S1TrAn8c"
+        localRuntime "maven.modrinth:MdwFAVRL:S1TrAn8c"
+    }
+    compileOnly "org.jetbrains.kotlin:kotlin-stdlib:2.0.20"
+    localRuntime "org.jetbrains.kotlin:kotlin-stdlib:2.0.20"
+    // 코블몬은 Kotlin 기반이므로 로컬 개발 실행에 NeoForge 언어 공급자를 포함합니다.
+    localRuntime "thedarkcolour:kotlinforforge-neoforge:5.10.0"
+    // 선택형 클라이언트 연동입니다. Xaero 월드맵이 없어도 모드를 사용할 수 있습니다.
+    compileOnly "xaero.map:xaeroworldmap-neoforge-1.21.1:1.45.0"
+
+    // JEI 선택형 모드 의존성 예시입니다.
+    // 컴파일 시에는 JEI API를 선언하고 실행 시에는 전체 JEI 산출물을 사용합니다.
+    // compileOnly "mezz.jei:jei-${mc_version}-common-api:${jei_version}"
+    // compileOnly "mezz.jei:jei-${mc_version}-neoforge-api:${jei_version}"
+    // 의존성이 외부로 게시되지 않도록 전체 버전은 runtimeOnly가 아닌 localRuntime에 추가합니다.
+    // localRuntime "mezz.jei:jei-${mc_version}-neoforge:${jei_version}"
+
+    // 평면 폴더 저장소의 ./libs 모드 JAR을 사용하는 의존성 예시입니다.
+    // ./libs/coolmod-${mc_version}-${coolmod_version}.jar 파일에 대응합니다.
+    // 검색할 때 그룹 식별자는 무시되며 이 예시에서는 "blank"입니다.
+    // implementation "blank:coolmod-${mc_version}:${coolmod_version}"
+
+    // 파일을 직접 사용하는 모드 의존성 예시입니다.
+    // implementation files("libs/coolmod-${mc_version}-${coolmod_version}.jar")
+
+    // 동일 계층 또는 하위 프로젝트를 사용하는 프로젝트 의존성 예시입니다.
+    // implementation project(":myproject")
+
+    // 자세한 내용:
+    // http://www.gradle.org/docs/current/userguide/artifact_dependencies_tutorial.html
+    // http://www.gradle.org/docs/current/userguide/dependency_management.html
+}
+
+// 지정한 리소스 대상에서 선언된 모든 치환 속성을 확장합니다.
+// 속성이 없으면 오류가 발생하며 `${}` Groovy 표기법으로 확장합니다.
+var generateModMetadata = tasks.register("generateModMetadata", ProcessResources) {
+    var replaceProperties = [
+            minecraft_version      : minecraft_version,
+            minecraft_version_range: minecraft_version_range,
+            neo_version            : neo_version,
+            loader_version_range   : loader_version_range,
+            mod_id                 : mod_id,
+            mod_name               : mod_name,
+            mod_license            : mod_license,
+            mod_version            : mod_version,
+    ]
+    inputs.properties replaceProperties
+    expand replaceProperties
+    from "src/main/templates"
+    into "build/generated/sources/modMetadata"
+}
+// `generateModMetadata` 출력을 빌드 입력 폴더로 포함합니다.
+// Gradle 빌드와 개발 환경 빌드에 모두 적용됩니다.
+sourceSets.main.resources.srcDir generateModMetadata
+// 프로젝트를 다시 불러올 때마다 `generateModMetadata`를 실행하여 수동 실행을 피합니다.
+neoForge.ideSyncTask generateModMetadata
+
+// maven-publish 플러그인으로 게시하기 위한 구성 예시입니다.
+publishing {
+    publications {
+        register('mavenJava', MavenPublication) {
+            from components.java
+        }
+    }
+    repositories {
+        maven {
+            url = uri("${project.projectDir}/repo")
+        }
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8' // Use the UTF-8 charset for Java compilation
+}
+
+tasks.register("validateTurtleRacing", JavaExec) {
+    group = "verification"
+    description = "Runs deterministic turtle generation, course, and race invariants."
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = "com.yoiko.core.turtle.TurtleRacingValidator"
+    if (project.hasProperty("controlledStrategies")) {
+        args "controlled"
+    }
+}
+
+tasks.register("validateTurtleRacingBalance", JavaExec) {
+    group = "verification"
+    description = "Runs the slow trained-build, strategy, active-skill, and passive-skill balance suite."
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = "com.yoiko.core.turtle.race.TurtleRacingBalanceValidator"
+    if (project.hasProperty("validationSkill")) {
+        args project.property("validationSkill")
+    }
+}
+
+tasks.register("validateTurtleStrategySpecialization", JavaExec) {
+    group = "verification"
+    description = "Measures fully strategy-specialized turtle win rates against Open AI and each other."
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = "com.yoiko.core.turtle.race.TurtleStrategySpecializationValidator"
+    if (project.hasProperty("validationRaces")) {
+        args project.property("validationRaces"), project.property("validationRaces")
+    }
+}
+
+tasks.register("validateTurtleTrainingBalance", JavaExec) {
+    group = "verification"
+    description = "Follows the UI recommendation and measures the resulting strategy builds and stamina."
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = "com.yoiko.core.turtle.TurtleTrainingBalanceValidator"
+    if (project.hasProperty("validationRaces")) {
+        args project.property("validationRaces")
+    }
+}
+
+tasks.register("validateTurtleStaminaRecovery", JavaExec) {
+    group = "verification"
+    description = "Checks breathing frequency for low-untrained and recommended stamina profiles."
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = "com.yoiko.core.turtle.TurtleStaminaRecoveryValidator"
+    if (project.hasProperty("validationRaces")) {
+        args project.property("validationRaces")
+    }
+}
+
+tasks.register("validateTurtleArchetypeBalance", JavaExec) {
+    group = "verification"
+    description = "Compares every innate turtle stat distribution with paired courses and opponents."
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = "com.yoiko.core.turtle.TurtleArchetypeBalanceValidator"
+    if (project.hasProperty("validationRaces")) {
+        args project.property("validationRaces")
+    }
+}
+
+tasks.named("check") {
+    dependsOn("validateTurtleRacing", "validateTurtleStaminaRecovery")
+}
+
+def yoikoLangDirectory = layout.projectDirectory.dir("src/main/resources/assets/yoiko_core/lang")
+tasks.register("validateTranslations") {
+    group = "verification"
+    description = "Checks locale key parity, duplicate keys, placeholders, and percent formatting."
+    inputs.dir(yoikoLangDirectory)
+    doLast {
+        def locales = ["ko_kr", "ja_jp", "en_us"]
+        def dictionaries = [:]
+        locales.each { locale ->
+            def source = yoikoLangDirectory.file("${locale}.json").asFile.getText("UTF-8").replaceFirst(/^\uFEFF/, "")
+            def keys = []
+            def keyMatcher = source =~ /(?m)^\s*"([a-zA-Z0-9_.-]+)"\s*:/
+            keyMatcher.each { match -> keys << match[1] }
+            def duplicates = keys.findAll { key -> keys.count(key) > 1 }.unique()
+            if (!duplicates.isEmpty()) throw new GradleException("${locale}: duplicate translation keys: ${duplicates.join(', ')}")
+            def parsed = new groovy.json.JsonSlurper().parseText(source)
+            parsed.each { key, rawValue ->
+                def value = String.valueOf(rawValue)
+                def invalid = value.replaceAll(java.util.regex.Pattern.compile('%%|%s|%\\d+\\$s'), "")
+                if (invalid.contains("%")) throw new GradleException("${locale}: invalid percent formatting in ${key}")
+            }
+            dictionaries[locale] = parsed
+        }
+        def baselineKeys = dictionaries[locales[0]].keySet()
+        locales.drop(1).each { locale ->
+            if (dictionaries[locale].keySet() != baselineKeys) {
+                def missing = baselineKeys - dictionaries[locale].keySet()
+                def extra = dictionaries[locale].keySet() - baselineKeys
+                throw new GradleException("${locale}: translation key mismatch; missing=${missing.size()}, extra=${extra.size()}")
+            }
+        }
+        baselineKeys.each { key ->
+            def signatures = locales.collect { locale ->
+                def sequential = 1
+                def placeholders = []
+                def matcher = java.util.regex.Pattern.compile('%(?:(\\d+)\\$)?s')
+                        .matcher(String.valueOf(dictionaries[locale][key]))
+                matcher.each { match -> placeholders << (match[1] ? Integer.parseInt(match[1]) : sequential++) }
+                placeholders.sort().join(",")
+            }
+            if (signatures.unique().size() != 1) {
+                throw new GradleException("Placeholder mismatch in ${key}: ${signatures}")
+            }
+        }
+        logger.lifecycle("Translation validation passed for ${locales.size()} locales and ${baselineKeys.size()} keys.")
+    }
+}
+
+def yoikoProjectDirectory = layout.projectDirectory
+def yoikoJavaSources = fileTree("src/main/java") { include "**/*.java" }
+tasks.register("validateProjectStructure") {
+    group = "verification"
+    description = "Checks development-only removals and required particle recovery snapshots."
+    inputs.files(yoikoJavaSources)
+    doLast {
+        def requiredBackups = [
+                "legacy_reference/particle_effects_before_registry_2026-09-01/ParticleTrailManager.java.txt",
+                "legacy_reference/particle_effects_before_registry_2026-09-01/NewParticleCosmeticEffects.java.txt",
+                "legacy_reference/particle_effects_before_registry_2026-09-01/AdaptiveFlightTrailEffects.java.txt"
+        ]
+        requiredBackups.each { path ->
+            if (!yoikoProjectDirectory.file(path).asFile.isFile()) throw new GradleException("Missing particle recovery snapshot: ${path}")
+        }
+        def retiredResources = [
+                "src/main/resources/assets/yoiko_core/models/item/yoiko_menu.json",
+                "src/main/resources/assets/yoiko_core/models/item/yoiko_menu_unread_mail.json",
+                "src/main/resources/assets/yoiko_core/textures/item/menu/yoiko_menu_unread_mail.png",
+                "src/main/resources/assets/yoiko_core/models/item/relic_upgrade_scroll.json",
+                "src/main/resources/assets/yoiko_core/models/item/relic_protection_scroll.json"
+        ]
+        retiredResources.each { path ->
+            if (yoikoProjectDirectory.file(path).asFile.exists()) throw new GradleException("Retired resource is still present: ${path}")
+        }
+        def forbiddenSourceTokens = ["mailboxPage", "LEGACY_INTRO_STRATEGY_REWARD", "migrateLegacyStrategyTickets"]
+        yoikoJavaSources.files.each { source ->
+            def text = source.getText("UTF-8")
+            forbiddenSourceTokens.each { token ->
+                if (text.contains(token)) throw new GradleException("Retired source token '${token}' remains in ${source}")
+            }
+        }
+        def particleManager = yoikoProjectDirectory.file(
+                "src/main/java/com/yoiko/core/cosmetic/ParticleTrailManager.java").asFile.getText("UTF-8")
+        if (particleManager.contains("id.contains(")) {
+            throw new GradleException("Particle effects must use exact-ID registries, not substring dispatch.")
+        }
+    }
+}
+
+tasks.named("jar") {
+    // Gradle에서 실행하는 결정론적 검증 진입점만 제외합니다.
+    // PassiveLoadoutValidator는 실제 거북이 생성 경로의 일부이므로 모드 JAR에 남겨야 합니다.
+    exclude(
+            "com/yoiko/core/turtle/TurtleRacingValidator*.class",
+            "com/yoiko/core/turtle/TurtleTrainingBalanceValidator*.class",
+            "com/yoiko/core/turtle/TurtleStaminaRecoveryValidator*.class",
+            "com/yoiko/core/turtle/TurtleArchetypeBalanceValidator*.class",
+            "com/yoiko/core/turtle/race/TurtleRacingBalanceValidator*.class",
+            "com/yoiko/core/turtle/race/TurtleStrategySpecializationValidator*.class"
+    )
+}
+
+tasks.register("releaseGate") {
+    group = "verification"
+    description = "Builds a release only after translations, structure, and all deterministic race suites pass."
+    dependsOn("build", "validateTranslations", "validateProjectStructure",
+            "validateTurtleRacing", "validateTurtleRacingBalance",
+            "validateTurtleStrategySpecialization", "validateTurtleTrainingBalance",
+            "validateTurtleStaminaRecovery", "validateTurtleArchetypeBalance")
+}
+
+tasks.named("jar") {
+    mustRunAfter("validateTranslations", "validateProjectStructure",
+            "validateTurtleRacing", "validateTurtleRacingBalance",
+            "validateTurtleStrategySpecialization", "validateTurtleTrainingBalance",
+            "validateTurtleStaminaRecovery", "validateTurtleArchetypeBalance")
+}
+
+// IDEA가 의존성의 소스와 Javadoc JAR을 자동으로 받지 않으므로 해당 동작을 명시적으로 활성화합니다.
+idea {
+    module {
+        downloadSources = true
+        downloadJavadoc = true
+    }
+}

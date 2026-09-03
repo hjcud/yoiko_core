@@ -1,0 +1,9 @@
+# 텍스트 파일의 줄바꿈을 저장소에서 LF로 통일합니다.
+* text=auto
+*.java text eol=lf
+*.gradle text eol=lf
+*.properties text eol=lf
+*.toml text eol=lf
+*.md text eol=lf
+gradlew text eol=lf
+*.bat text eol=crlf
