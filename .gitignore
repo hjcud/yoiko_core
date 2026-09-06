@@ -59,6 +59,7 @@ cobblemon-*/
 
 # 저장소 소개에 사용하는 선별된 스크린샷
 !readme-assets/*.png
+!readme-assets/*.gif
 
 # 바이너리와 압축 파일
 *.jar
