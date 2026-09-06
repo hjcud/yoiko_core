@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="readme-assets/title.png" alt="YOIKO SERVER CORE" width="640">
+</p>
+
 # 개인 서버용 코어 모드
 
 > 개인 코블몬 서버의 성장, 경제, 보상, 수집과 이벤트를 하나의 플레이 흐름으로 연결하는 NeoForge 1.21.1 기반 모드입니다.
