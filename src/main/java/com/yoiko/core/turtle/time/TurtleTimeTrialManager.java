@@ -100,7 +100,12 @@ public final class TurtleTimeTrialManager {
         else if(state==State.RESULT){long shown=server.getTickCount()-stateTick;if(!podiumShown&&world!=null)world.syncRaceHud();if(!podiumShown&&shown>=PODIUM_DELAY_TICKS){if(world!=null)world.showPodium(race.standings());podiumShown=true;}if(shown>=PODIUM_DELAY_TICKS+PODIUM_VIEW_TICKS){if(world!=null){world.discard();world=null;}race=null;if(attempts>=2){active=null;advanceQueueOrIdle();}else state=State.READY;}}
         else if(state==State.READY&&active==null&&server.getTickCount()-stateTick>=12_000){state=State.CLEANING;arena.beginCleanup();}
         else if(state==State.CLEANING&&arena.phase()==TurtleArenaManager.Phase.IDLE){state=State.IDLE;presetIndex=-1;}
-        if(!withinOpenWindow()&&(state==State.IDLE||state==State.READY)&&active==null&&arena.phase()==TurtleArenaManager.Phase.READY){state=State.CLEANING;arena.beginCleanup();}
+        // IDLE does not own the shared arena: it may have just been built for a competition.
+        // Only an unused, leased time-trial arena may be released when its window closes.
+        if(state==State.READY&&presetIndex>=0&&active==null
+                &&arena.phase()==TurtleArenaManager.Phase.READY
+                &&TurtleRacingSavedData.get(server).competition().isEmpty()
+                &&!withinOpenWindow())beginCleanupOrIdle();
     }
 
     private boolean canAcquireArena(){return TurtleRacingSavedData.get(server).competition().isEmpty()&&arena.phase()==TurtleArenaManager.Phase.IDLE;}

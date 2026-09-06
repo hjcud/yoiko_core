@@ -537,7 +537,9 @@ public final class TurtleRacingManager {
         if(saved.competition().isPresent()||arena.phase()!=TurtleArenaManager.Phase.IDLE||timeTrial.hasPendingWork())throw TurtleLocalizedException.of("yoiko_core.turtle.error.arena_busy");
         if(saved.arenaCenter().isEmpty())throw TurtleLocalizedException.of("yoiko_core.turtle.error.arena_center_first");
         LocalTime t=now().toLocalTime();
-        if((!t.isBefore(LocalTime.of(18,30))&&t.isBefore(LocalTime.of(20,40)))||(!t.isBefore(LocalTime.of(4,40))&&t.isBefore(LocalTime.of(5,10))))throw TurtleLocalizedException.of("yoiko_core.turtle.error.protected_schedule");
+        // Exhibitions may use an idle arena at any hour. The shared arena checks above still
+        // prevent concurrent races; the scheduler retries after the exhibition's cleanup.
+        if(official&&((!t.isBefore(LocalTime.of(18,30))&&t.isBefore(LocalTime.of(20,40)))||(!t.isBefore(LocalTime.of(4,40))&&t.isBefore(LocalTime.of(5,10)))))throw TurtleLocalizedException.of("yoiko_core.turtle.error.protected_schedule");
         String period=YoikoResetClock.dailyPeriodKey(System.currentTimeMillis());
         if(official&&saved.manualOfficialOpenedPeriodKey().equals(period))throw TurtleLocalizedException.of("yoiko_core.turtle.error.manual_official_used");
     }
